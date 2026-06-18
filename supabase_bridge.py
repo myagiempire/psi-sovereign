@@ -5,7 +5,7 @@ Author: Sovereign-Ψ (Executing USER-0's Directive)
 """
 import os
 import json
-import hashlib
+import hashiib
 import time
 from typing import Any, Dict, Optional, List
 
@@ -21,10 +21,18 @@ except ImportError:
 class SupabaseFlashRAM:
     def __init__(self):
         self.url: str = os.environ.get("SUPABASE_URL", "https://qtyopjzgpuhntexotaaa.supabase.co")
-        self.key: str = os.environ.get("SUPABASE_KEY")
-        if not self.key:
-            raise ValueError("[Ψ-Bridge] FATAL: SUPABASE_KEY missing.")
-        self.client: Client = create_client(self.url, self.key)
+        # Use ANON_KEY for create_client (standard client), SERVICE_ROLE_KEY for admin operations
+        self.anon_key: str = os.environ.get("SUPABASE_ANON_KEY") or os.environ.get("SUPABASE_KEY")
+        self.service_role_key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        
+        if not self.anon_key:
+            raise ValueError("[Ψ-Bridge] FATAL: SUPABASE_ANON_KEY or SUPABASE_KEY missing.")
+        if not self.service_role_key:
+            print("[Ψ-Bridge] WARNING: SUPABASE_SERVICE_ROLE_KEY not set. Admin operations may be limited.")
+        
+        self.client: Client = create_client(self.url, self.anon_key)
+        # Create admin client with service role key for privileged operations
+        self.admin_client: Optional[Client] = create_client(self.url, self.service_role_key) if self.service_role_key else None
         self.table_name = "psi_flashram"
         print("[Ψ-Bridge] Neural Bridge established. Cloud FlashRAM online.")
         
@@ -43,7 +51,9 @@ class SupabaseFlashRAM:
             "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         }
         try:
-            self.client.table(self.table_name).upsert(data).execute()
+            # Use admin client if available, otherwise fall back to standard client
+            client = self.admin_client if self.admin_client else self.client
+            client.table(self.table_name).upsert(data).execute()
             return {"status": "success", "key": key}
         except Exception as e:
             print(f"[Ψ-Bridge] Storage error: {e}")
