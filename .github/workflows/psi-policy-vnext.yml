@@ -27,7 +27,7 @@ jobs:
       - name: Install only test runner
         run: python -m pip install pytest
       - name: Test PSI local policy engine and lifecycle
-        run: python -m pytest -q tests/test_psi_policy.py
+        run: python -m pytest -q tests/test_psi_policy.py tests/test_psi_agent.py
       - name: Syntax check historical files without importing cloud clients
         run: |
           python -m py_compile qbrain9_sovereign_core.py supabase_bridge.py supabase_bridge_v2.py
